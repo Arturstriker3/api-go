@@ -124,7 +124,7 @@ To use the client in another project:
 1. Add GoMailer as a dependency:
 
 ```bash
-go get github.com/your-username/gomailer
+go get github.com/Arturstriker3/gomailer
 ```
 
 2. Configure environment variables in your service:
