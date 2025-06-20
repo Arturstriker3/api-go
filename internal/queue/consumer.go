@@ -43,7 +43,7 @@ func NewConsumer(cfg *config.Config, emailService *email.Service) (*Consumer, er
 
 func (c *Consumer) Setup() error {
 	// Declare the queue
-	queue, err := c.channel.QueueDeclare(
+	_, err := c.channel.QueueDeclare(
 		"email_queue", // queue name
 		true,         // durable
 		false,        // delete when unused
