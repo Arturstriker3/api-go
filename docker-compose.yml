@@ -1,6 +1,24 @@
 version: "3.8"
 
 services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: gomailer_api
+    ports:
+      - "9000:9000" # TCP port
+      - "9091:9091" # Metrics port
+    environment:
+      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_PORT=5672
+      - RABBITMQ_USER=admin
+      - RABBITMQ_PASSWORD=admin
+    depends_on:
+      - rabbitmq
+    networks:
+      - gomailer_network
+
   rabbitmq:
     image: rabbitmq:3-management
     container_name: gomailer_rabbitmq
