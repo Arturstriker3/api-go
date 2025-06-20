@@ -60,43 +60,45 @@ func (s *Server) handleConnection(conn net.Conn) {
 	metrics.TCPConnections.Inc()
 	defer metrics.TCPConnections.Dec()
 
-	// Primeiro, autenticar a conexão
-	authMsg := make([]byte, 1024)
-	n, err := conn.Read(authMsg)
-	if err != nil {
-		log.Printf("Error reading auth message: %v", err)
-		metrics.TCPErrors.Inc()
-		return
-	}
+	authenticated := false
 
-	var auth struct {
-		Secret string `json:"secret"`
-	}
-	if err := json.Unmarshal(authMsg[:n], &auth); err != nil {
-		log.Printf("Error parsing auth message: %v", err)
-		metrics.TCPErrors.Inc()
-		sendError(conn, "Invalid auth format")
-		return
-	}
+	for {
+		buffer := make([]byte, 4096)
+		n, err := conn.Read(buffer)
+		if err != nil {
+			log.Printf("Error reading message: %v", err)
+			return
+		}
 
-	if auth.Secret != s.authSecret {
-		log.Printf("Invalid auth secret received")
-		metrics.TCPErrors.Inc()
-		sendError(conn, "Invalid authentication")
-		return
-	}
+		message := buffer[:n]
+		
+		if !authenticated {
+			// Primeiro, tentar autenticar
+			var auth struct {
+				Secret string `json:"secret"`
+			}
+			if err := json.Unmarshal(message, &auth); err == nil && auth.Secret != "" {
+				if auth.Secret != s.authSecret {
+					log.Printf("Invalid auth secret received")
+					metrics.TCPErrors.Inc()
+					sendError(conn, "Invalid authentication")
+					return
+				}
+				
+				authenticated = true
+				sendSuccess(conn, "Authentication successful")
+				continue
+			}
+			
+			// Se não é autenticação, rejeitar
+			sendError(conn, "Authentication required")
+			return
+		}
 
-	// Após autenticação, ler a mensagem de email
-	buffer := make([]byte, 4096)
-	n, err = conn.Read(buffer)
-	if err != nil {
-		log.Printf("Error reading message: %v", err)
-		metrics.TCPErrors.Inc()
-		return
+		// Se já autenticado, processar mensagem de email
+		response := s.handler.HandleMessage(message)
+		conn.Write(response)
 	}
-
-	response := s.handler.HandleMessage(buffer[:n])
-	conn.Write(response)
 }
 
 func sendError(conn net.Conn, message string) {
@@ -104,6 +106,16 @@ func sendError(conn net.Conn, message string) {
 		Error string `json:"error"`
 	}{
 		Error: message,
+	}
+	responseBytes, _ := json.Marshal(response)
+	conn.Write(responseBytes)
+}
+
+func sendSuccess(conn net.Conn, message string) {
+	response := struct {
+		Message string `json:"message"`
+	}{
+		Message: message,
 	}
 	responseBytes, _ := json.Marshal(response)
 	conn.Write(responseBytes)

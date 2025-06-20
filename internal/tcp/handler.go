@@ -22,6 +22,18 @@ func NewHandler(cfg *config.Config, emailService *email.Service) *Handler {
 }
 
 func (h *Handler) HandleMessage(message []byte) []byte {
+	// Check for authentication message
+	var authData struct {
+		Secret string `json:"secret"`
+	}
+	if err := json.Unmarshal(message, &authData); err == nil && authData.Secret != "" {
+		if authData.Secret == h.config.TCP.AuthSecret {
+			return createSuccessResponse("Authentication successful")
+		}
+		return createErrorResponse("Invalid authentication secret")
+	}
+
+	// Handle email message
 	var emailData email.EmailData
 	if err := json.Unmarshal(message, &emailData); err != nil {
 		log.Printf("Error parsing email data: %v", err)
@@ -29,14 +41,14 @@ func (h *Handler) HandleMessage(message []byte) []byte {
 		return createErrorResponse("Invalid email data format")
 	}
 
-	if err := h.emailService.SendEmail(&emailData); err != nil {
-		log.Printf("Error sending email: %v", err)
+	if err := h.emailService.QueueEmail(&emailData); err != nil {
+		log.Printf("Error queueing email: %v", err)
 		metrics.EmailErrors.Inc()
-		return createErrorResponse("Failed to send email")
+		return createErrorResponse("Failed to queue email")
 	}
 
 	metrics.EmailsQueued.Inc()
-	return createSuccessResponse()
+	return createSuccessResponse("Email queued successfully")
 }
 
 func createErrorResponse(message string) []byte {
@@ -49,11 +61,11 @@ func createErrorResponse(message string) []byte {
 	return responseBytes
 }
 
-func createSuccessResponse() []byte {
+func createSuccessResponse(message string) []byte {
 	response := struct {
 		Message string `json:"message"`
 	}{
-		Message: "Email queued successfully",
+		Message: message,
 	}
 	responseBytes, _ := json.Marshal(response)
 	return responseBytes
