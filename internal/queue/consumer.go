@@ -109,7 +109,6 @@ func (c *Consumer) StartConsuming() error {
 			msg.Ack(false)
 			metrics.EmailsSent.Inc()
 			metrics.QueueLatency.Observe(time.Since(start).Seconds())
-			log.Printf("Email sent successfully to %v", emailData.To)
 
 			// Update queue size after processing
 			queue, err := c.channel.QueueInspect("email_queue")

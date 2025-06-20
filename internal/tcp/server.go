@@ -79,13 +79,13 @@ func (s *Server) handleConnection(conn net.Conn) {
 			}
 			if err := json.Unmarshal(message, &auth); err == nil && auth.Secret != "" {
 				if auth.Secret != s.authSecret {
-					log.Printf("Invalid auth secret received")
-					metrics.TCPErrors.Inc()
+					metrics.TCPAuthErrors.Inc()
 					sendError(conn, "Invalid authentication")
 					return
 				}
 				
 				authenticated = true
+				metrics.TCPAuthSuccess.Inc()
 				sendSuccess(conn, "Authentication successful")
 				continue
 			}

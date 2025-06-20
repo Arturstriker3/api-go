@@ -77,11 +77,11 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "rate(gomailer_emails_sent_total[5m])",
+          "expr": "increase(gomailer_emails_sent_total[30s])",
           "refId": "A"
         }
       ],
-      "title": "Email Rate (5m)",
+      "title": "Emails Sent (30s)",
       "type": "gauge"
     },
     {
@@ -373,7 +373,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "increase(gomailer_emails_sent_total[5m])",
+          "expr": "increase(gomailer_emails_sent_total[1m])",
           "legendFormat": "Sent",
           "refId": "A"
         },
@@ -382,12 +382,12 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "increase(gomailer_email_errors_total[5m])",
+          "expr": "increase(gomailer_email_errors_total[1m])",
           "legendFormat": "Errors",
           "refId": "B"
         }
       ],
-      "title": "Email Success vs Errors (5m)",
+      "title": "Email Success vs Errors (1m)",
       "type": "timeseries"
     },
     {

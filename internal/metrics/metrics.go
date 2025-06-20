@@ -45,13 +45,13 @@ var (
 		Help: "Total number of TCP connection errors",
 	})
 
-	// API metrics
-	HTTPRequestDuration = promauto.NewHistogramVec(
-		prometheus.HistogramOpts{
-			Name:    "gomailer_http_request_duration_seconds",
-			Help:    "Duration of HTTP requests",
-			Buckets: prometheus.DefBuckets,
-		},
-		[]string{"path", "method", "status"},
-	)
+	TCPAuthSuccess = promauto.NewCounter(prometheus.CounterOpts{
+		Name: "gomailer_tcp_auth_success_total",
+		Help: "Total number of successful TCP authentications",
+	})
+
+	TCPAuthErrors = promauto.NewCounter(prometheus.CounterOpts{
+		Name: "gomailer_tcp_auth_errors_total",
+		Help: "Total number of failed TCP authentications",
+	})
 ) 
