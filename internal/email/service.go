@@ -3,6 +3,7 @@ package email
 import (
 	"encoding/json"
 	"fmt"
+	"time"
 
 	"github.com/Arturstriker3/api-go/config"
 	"github.com/Arturstriker3/api-go/internal/metrics"
@@ -11,9 +12,10 @@ import (
 )
 
 type EmailData struct {
-	To      []string `json:"to"`
-	Subject string   `json:"subject"`
-	Body    string   `json:"body"`
+	To        []string  `json:"to"`
+	Subject   string    `json:"subject"`
+	Body      string    `json:"body"`
+	QueuedAt  time.Time `json:"queued_at"`
 }
 
 type Service struct {
@@ -73,6 +75,9 @@ func (s *Service) QueueEmail(data *EmailData) error {
 		return fmt.Errorf("recipient list is empty")
 	}
 
+	// Add timestamp when queueing
+	data.QueuedAt = time.Now()
+
 	// Convert email data to JSON
 	body, err := json.Marshal(data)
 	if err != nil {
@@ -116,6 +121,12 @@ func (s *Service) SendEmail(data *EmailData) error {
 	if err := s.dialer.DialAndSend(m); err != nil {
 		metrics.EmailErrors.Inc()
 		return fmt.Errorf("failed to send email: %w", err)
+	}
+
+	// Calculate delivery time if timestamp exists
+	if !data.QueuedAt.IsZero() {
+		deliveryTime := time.Since(data.QueuedAt).Seconds()
+		metrics.EmailDeliveryTime.Observe(deliveryTime)
 	}
 
 	metrics.EmailsSent.Inc()

@@ -34,6 +34,13 @@ var (
 		Buckets: prometheus.DefBuckets,
 	})
 
+	// End-to-end delivery time (TCP to SMTP completion)
+	EmailDeliveryTime = promauto.NewHistogram(prometheus.HistogramOpts{
+		Name:    "gomailer_email_delivery_seconds",
+		Help:    "Time taken for an email to be delivered end-to-end",
+		Buckets: []float64{0.1, 0.5, 1, 2, 5, 10, 30, 60, 120},
+	})
+
 	// TCP metrics
 	TCPConnections = promauto.NewGauge(prometheus.GaugeOpts{
 		Name: "gomailer_tcp_connections_current",
