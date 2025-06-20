@@ -17,6 +17,7 @@ Um microsserviço para manipulação de envio de emails através de uma fila Rab
 - Envio de emails via SMTP com suporte a HTML
 - Configuração baseada em variáveis de ambiente
 - Suporte a Docker para RabbitMQ
+- Conexão TCP segura para integração com outros serviços
 
 ## Pré-requisitos
 
@@ -61,7 +62,7 @@ docker-compose up -d
 go run cmd/main.go
 ```
 
-O serviço iniciará na porta configurada (padrão: 8080).
+O serviço iniciará nas portas configuradas (padrão: HTTP 8080, TCP 9000).
 
 ## Variáveis de Ambiente
 
@@ -70,6 +71,7 @@ O serviço iniciará na porta configurada (padrão: 8080).
 - `SMTP_USER`: Usuário do servidor SMTP (obrigatório)
 - `SMTP_PASSWORD`: Senha do servidor SMTP (obrigatório)
 - `SMTP_FROM`: Endereço de email de envio (obrigatório)
+- `TCP_AUTH_SECRET`: Chave secreta para autenticação TCP (obrigatório)
 
 ### Variáveis Opcionais com Valores Padrão
 
@@ -80,10 +82,11 @@ O serviço iniciará na porta configurada (padrão: 8080).
 - `RABBITMQ_USER`: Usuário do RabbitMQ (padrão: "admin")
 - `RABBITMQ_PASSWORD`: Senha do RabbitMQ (padrão: "admin")
 - `API_PORT`: Porta do servidor API (padrão: "8080")
+- `TCP_PORT`: Porta do servidor TCP (padrão: "9000")
 
 ## Uso da API
 
-### Enfileirar um Email
+### Enfileirar um Email via HTTP
 
 ```http
 POST /email
@@ -104,6 +107,56 @@ Resposta:
 }
 ```
 
+### Integração via TCP
+
+Para integrar outros serviços com o GoMailer, você pode usar o cliente TCP fornecido:
+
+```go
+package main
+
+import (
+    "log"
+    "gomailer/pkg/client"
+)
+
+func main() {
+    // Criar cliente de email
+    emailClient := client.NewEmailClient(
+        "localhost",           // Host do serviço
+        "9000",               // Porta TCP
+        "seu-segredo-aqui",   // Chave de autenticação
+    )
+
+    // Preparar requisição de email
+    request := &client.EmailRequest{
+        To:      []string{"destinatario@exemplo.com"},
+        Subject: "Teste via TCP",
+        Body:    "<h1>Olá</h1><p>Este é um teste via TCP</p>",
+    }
+
+    // Enviar email
+    if err := emailClient.SendEmail(request); err != nil {
+        log.Fatalf("Erro ao enviar email: %v", err)
+    }
+}
+```
+
+Para usar o cliente em outro projeto:
+
+1. Adicione o GoMailer como dependência:
+
+```bash
+go get github.com/seu-usuario/gomailer
+```
+
+2. Configure as variáveis de ambiente no seu serviço:
+
+```env
+GOMAILER_HOST=localhost
+GOMAILER_PORT=9000
+GOMAILER_AUTH_SECRET=seu-segredo-aqui
+```
+
 ## Arquitetura
 
 O serviço segue um padrão de arquitetura limpa com os seguintes componentes:
@@ -113,6 +166,8 @@ O serviço segue um padrão de arquitetura limpa com os seguintes componentes:
 - `internal/api/`: Manipuladores da API HTTP
 - `internal/email/`: Serviço de envio de email
 - `internal/queue/`: Implementação do consumidor RabbitMQ
+- `internal/tcp/`: Servidor TCP para integração com outros serviços
+- `pkg/client/`: Cliente TCP para integração externa
 
 ## Tratamento de Erros
 
@@ -122,6 +177,7 @@ O serviço implementa um tratamento robusto de erros:
 - Validação de entrada para requisições de email
 - Tratamento de erros de conexão com a fila
 - Tratamento de erros de envio SMTP com reenvio para a fila
+- Autenticação e validação de conexões TCP
 - Desligamento gracioso em sinais do sistema
 
 ## Desenvolvimento
@@ -161,6 +217,7 @@ go build -o gomailer cmd/main.go
 3. Configure um gerenciador de processos (ex: systemd)
 4. Configure monitoramento e logging adequados
 5. Use um serviço SMTP de nível de produção
+6. Configure firewalls para permitir apenas conexões TCP confiáveis
 
 ## Licença
 

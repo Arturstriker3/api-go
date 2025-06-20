@@ -12,6 +12,7 @@ type Config struct {
 	RabbitMQ RabbitMQConfig
 	SMTP     SMTPConfig
 	API      APIConfig
+	TCP      TCPConfig
 }
 
 type RabbitMQConfig struct {
@@ -31,6 +32,11 @@ type SMTPConfig struct {
 
 type APIConfig struct {
 	Port string
+}
+
+type TCPConfig struct {
+	Port       string
+	AuthSecret string
 }
 
 // LoadConfig loads the configuration from environment variables
@@ -61,6 +67,10 @@ func LoadConfig() (*Config, error) {
 		API: APIConfig{
 			Port: getEnvWithDefault("API_PORT", "8080"),
 		},
+		TCP: TCPConfig{
+			Port:       getEnvWithDefault("TCP_PORT", "9000"),
+			AuthSecret: os.Getenv("TCP_AUTH_SECRET"),
+		},
 	}
 
 	// Validate required environment variables
@@ -84,6 +94,11 @@ func (c *Config) validate() error {
 	}
 	if c.SMTP.From == "" {
 		missingVars = append(missingVars, "SMTP_FROM")
+	}
+
+	// Check required TCP variables
+	if c.TCP.AuthSecret == "" {
+		missingVars = append(missingVars, "TCP_AUTH_SECRET")
 	}
 
 	if len(missingVars) > 0 {

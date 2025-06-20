@@ -1,0 +1,54 @@
+# GoMailer TCP Connection Settings
+# Copy this file to .env in your application
+
+# GoMailer Service Connection
+GOMAILER_HOST=localhost
+GOMAILER_PORT=9000
+GOMAILER_AUTH_SECRET=your-secret-key
+
+# TCP Message Format (JSON):
+
+# 1. Authentication Message:
+# {
+#   "secret": "your-secret-key"
+# }
+
+# 2. Email Request Message:
+# {
+#   "to": ["recipient@example.com"],
+#   "subject": "Email Subject",
+#   "body": "<h1>HTML Content</h1>"
+# }
+
+# 3. Response Format:
+# Success: {"message": "Email queued successfully"}
+# Error: {"error": "Error message here"}
+
+# Example in Node.js:
+#
+# const net = require('net');
+# 
+# const client = new net.Socket();
+# client.connect(process.env.GOMAILER_PORT, process.env.GOMAILER_HOST, () => {
+#   // Send auth
+#   const auth = { secret: process.env.GOMAILER_AUTH_SECRET };
+#   client.write(JSON.stringify(auth));
+#
+#   // Send email
+#   const email = {
+#     to: ["recipient@example.com"],
+#     subject: "Test Email",
+#     body: "<h1>Hello</h1>"
+#   };
+#   client.write(JSON.stringify(email));
+# });
+#
+# client.on('data', (data) => {
+#   console.log(JSON.parse(data.toString()));
+#   client.destroy();
+# });
+
+# Security Notes:
+# 1. Use strong secret key
+# 2. Store credentials securely
+# 3. Use firewall rules in production 
