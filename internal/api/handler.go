@@ -5,14 +5,32 @@ import (
 	"fmt"
 	"gomailer/config"
 	"gomailer/internal/email"
+	"gomailer/internal/metrics"
 	"log"
+	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 
 type Handler struct {
 	channel *amqp.Channel
+}
+
+// MetricsMiddleware adds prometheus metrics to all routes
+func MetricsMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		start := time.Now()
+		c.Next()
+		duration := time.Since(start).Seconds()
+
+		metrics.HTTPRequestDuration.WithLabelValues(
+			c.Request.URL.Path,
+			c.Request.Method,
+			fmt.Sprint(c.Writer.Status()),
+		).Observe(duration)
+	}
 }
 
 func NewHandler(cfg *config.Config) (*Handler, error) {
@@ -79,14 +97,22 @@ func (h *Handler) QueueEmail(c *gin.Context) {
 	if err != nil {
 		log.Printf("Failed to publish message: %v", err)
 		c.JSON(500, gin.H{"error": "Failed to queue email"})
+		metrics.EmailErrors.Inc()
 		return
 	}
 
+	metrics.EmailsQueued.Inc()
 	c.JSON(202, gin.H{"message": "Email queued successfully"})
 }
 
 func SetupRouter(handler *Handler) *gin.Engine {
 	router := gin.Default()
+
+	// Add metrics middleware to all routes
+	router.Use(MetricsMiddleware())
+
+	// Add metrics endpoint
+	router.GET("/metrics", gin.WrapH(promhttp.Handler()))
 
 	router.POST("/email", handler.QueueEmail)
 

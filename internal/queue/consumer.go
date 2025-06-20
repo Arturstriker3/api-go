@@ -5,14 +5,16 @@ import (
 	"fmt"
 	"gomailer/config"
 	"gomailer/internal/email"
+	"gomailer/internal/metrics"
 	"log"
+	"time"
 
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 
 type Consumer struct {
-	conn    *amqp.Connection
-	channel *amqp.Channel
+	conn         *amqp.Connection
+	channel      *amqp.Channel
 	emailService *email.Service
 }
 
@@ -35,15 +37,15 @@ func NewConsumer(cfg *config.Config, emailService *email.Service) (*Consumer, er
 	}
 
 	return &Consumer{
-		conn:    conn,
-		channel: ch,
+		conn:         conn,
+		channel:      ch,
 		emailService: emailService,
 	}, nil
 }
 
 func (c *Consumer) Setup() error {
 	// Declare the queue
-	_, err := c.channel.QueueDeclare(
+	queue, err := c.channel.QueueDeclare(
 		"email_queue", // queue name
 		true,         // durable
 		false,        // delete when unused
@@ -54,6 +56,9 @@ func (c *Consumer) Setup() error {
 	if err != nil {
 		return fmt.Errorf("failed to declare queue: %w", err)
 	}
+
+	// Update queue size metric
+	metrics.QueueSize.Set(float64(queue.Messages))
 
 	// Set QoS
 	err = c.channel.Qos(
@@ -84,21 +89,33 @@ func (c *Consumer) StartConsuming() error {
 
 	go func() {
 		for msg := range msgs {
+			start := time.Now()
+
 			var emailData email.EmailData
 			if err := json.Unmarshal(msg.Body, &emailData); err != nil {
 				log.Printf("Error decoding message: %v", err)
 				msg.Nack(false, false)
+				metrics.EmailErrors.Inc()
 				continue
 			}
 
 			if err := c.emailService.SendEmail(&emailData); err != nil {
 				log.Printf("Error sending email: %v", err)
 				msg.Nack(false, true)
+				metrics.EmailErrors.Inc()
 				continue
 			}
 
 			msg.Ack(false)
+			metrics.EmailsSent.Inc()
+			metrics.QueueLatency.Observe(time.Since(start).Seconds())
 			log.Printf("Email sent successfully to %v", emailData.To)
+
+			// Update queue size after processing
+			queue, err := c.channel.QueueInspect("email_queue")
+			if err == nil {
+				metrics.QueueSize.Set(float64(queue.Messages))
+			}
 		}
 	}()
 

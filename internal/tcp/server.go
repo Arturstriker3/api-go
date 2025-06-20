@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"gomailer/config"
 	"gomailer/internal/email"
+	"gomailer/internal/metrics"
 	"log"
 	"net"
 )
@@ -38,6 +39,7 @@ func (s *Server) Start() error {
 		conn, err := listener.Accept()
 		if err != nil {
 			log.Printf("Error accepting connection: %v", err)
+			metrics.TCPErrors.Inc()
 			continue
 		}
 
@@ -54,12 +56,15 @@ func (s *Server) Stop() error {
 
 func (s *Server) handleConnection(conn net.Conn) {
 	defer conn.Close()
+	metrics.TCPConnections.Inc()
+	defer metrics.TCPConnections.Dec()
 
 	// Primeiro, autenticar a conexão
 	authMsg := make([]byte, 1024)
 	n, err := conn.Read(authMsg)
 	if err != nil {
 		log.Printf("Error reading auth message: %v", err)
+		metrics.TCPErrors.Inc()
 		return
 	}
 
@@ -68,12 +73,14 @@ func (s *Server) handleConnection(conn net.Conn) {
 	}
 	if err := json.Unmarshal(authMsg[:n], &auth); err != nil {
 		log.Printf("Error parsing auth message: %v", err)
+		metrics.TCPErrors.Inc()
 		sendError(conn, "Invalid auth format")
 		return
 	}
 
 	if auth.Secret != s.authSecret {
 		log.Printf("Invalid auth secret received")
+		metrics.TCPErrors.Inc()
 		sendError(conn, "Invalid authentication")
 		return
 	}
@@ -83,6 +90,7 @@ func (s *Server) handleConnection(conn net.Conn) {
 	n, err = conn.Read(buffer)
 	if err != nil {
 		log.Printf("Error reading message: %v", err)
+		metrics.TCPErrors.Inc()
 		return
 	}
 
