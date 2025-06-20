@@ -3,12 +3,12 @@ package queue
 import (
 	"encoding/json"
 	"fmt"
-	"gomailer/config"
-	"gomailer/internal/email"
-	"gomailer/internal/metrics"
 	"log"
 	"time"
 
+	"github.com/Arturstriker3/api-go/config"
+	"github.com/Arturstriker3/api-go/internal/email"
+	"github.com/Arturstriker3/api-go/internal/metrics"
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 

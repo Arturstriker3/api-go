@@ -5,6 +5,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
+  "id": null,
   "links": [
     {
       "asDropdown": false,
@@ -13,10 +14,10 @@
       "keepTime": true,
       "tags": [],
       "targetBlank": false,
-      "title": "Go to API Status",
+      "title": "Go to Email Dashboard",
       "tooltip": "",
       "type": "link",
-      "url": "/d/gomailer-api-status"
+      "url": "/d/gomailer-dashboard"
     }
   ],
   "liveNow": false,
@@ -31,36 +32,6 @@
           "color": {
             "mode": "palette-classic"
           },
-          "custom": {
-            "axisCenteredZero": false,
-            "axisColorMode": "text",
-            "axisLabel": "",
-            "axisPlacement": "auto",
-            "barAlignment": 0,
-            "drawStyle": "line",
-            "fillOpacity": 20,
-            "gradientMode": "none",
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            },
-            "lineInterpolation": "smooth",
-            "lineWidth": 2,
-            "pointSize": 5,
-            "scaleDistribution": {
-              "type": "linear"
-            },
-            "showPoints": "never",
-            "spanNulls": true,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
-          },
           "mappings": [],
           "thresholds": {
             "mode": "absolute",
@@ -71,7 +42,7 @@
               }
             ]
           },
-          "unit": "short"
+          "unit": "none"
         },
         "overrides": []
       },
@@ -83,37 +54,28 @@
       },
       "id": 1,
       "options": {
-        "legend": {
-          "calcs": [],
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": true
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "",
+          "values": false
         },
-        "tooltip": {
-          "mode": "single",
-          "sort": "none"
-        }
+        "showThresholdLabels": false,
+        "showThresholdMarkers": true
       },
+      "pluginVersion": "10.0.3",
       "targets": [
         {
           "datasource": {
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "rate(gomailer_emails_queued_total[5m])",
+          "expr": "go_goroutines",
           "refId": "A"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "expr": "rate(gomailer_emails_sent_total[5m])",
-          "refId": "B"
         }
       ],
-      "title": "Email Rate (5m)",
-      "type": "timeseries"
+      "title": "Active Goroutines",
+      "type": "gauge"
     },
     {
       "datasource": {
@@ -123,7 +85,7 @@
       "fieldConfig": {
         "defaults": {
           "color": {
-            "mode": "thresholds"
+            "mode": "palette-classic"
           },
           "mappings": [],
           "thresholds": {
@@ -132,19 +94,16 @@
               {
                 "color": "green",
                 "value": null
-              },
-              {
-                "color": "red",
-                "value": 80
               }
             ]
-          }
+          },
+          "unit": "bytes"
         },
         "overrides": []
       },
       "gridPos": {
         "h": 8,
-        "w": 6,
+        "w": 12,
         "x": 12,
         "y": 0
       },
@@ -159,76 +118,18 @@
         "showThresholdLabels": false,
         "showThresholdMarkers": true
       },
-      "pluginVersion": "10.0.0",
+      "pluginVersion": "10.0.3",
       "targets": [
         {
           "datasource": {
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "gomailer_queue_size",
+          "expr": "go_memstats_alloc_bytes",
           "refId": "A"
         }
       ],
-      "title": "Queue Size",
-      "type": "gauge"
-    },
-    {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "red",
-                "value": 80
-              }
-            ]
-          }
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 6,
-        "x": 18,
-        "y": 0
-      },
-      "id": 3,
-      "options": {
-        "orientation": "auto",
-        "reduceOptions": {
-          "calcs": ["lastNotNull"],
-          "fields": "",
-          "values": false
-        },
-        "showThresholdLabels": false,
-        "showThresholdMarkers": true
-      },
-      "pluginVersion": "10.0.0",
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "expr": "gomailer_tcp_connections_current",
-          "refId": "A"
-        }
-      ],
-      "title": "Active TCP Connections",
+      "title": "Memory Usage",
       "type": "gauge"
     },
     {
@@ -255,7 +156,7 @@
               "tooltip": false,
               "viz": false
             },
-            "lineInterpolation": "smooth",
+            "lineInterpolation": "linear",
             "lineWidth": 2,
             "pointSize": 5,
             "scaleDistribution": {
@@ -291,11 +192,11 @@
         "x": 0,
         "y": 8
       },
-      "id": 4,
+      "id": 3,
       "options": {
         "legend": {
-          "calcs": ["mean", "max"],
-          "displayMode": "table",
+          "calcs": [],
+          "displayMode": "list",
           "placement": "bottom",
           "showLegend": true
         },
@@ -304,17 +205,18 @@
           "sort": "none"
         }
       },
+      "pluginVersion": "10.0.3",
       "targets": [
         {
           "datasource": {
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "rate(gomailer_queue_latency_seconds_sum[5m]) / rate(gomailer_queue_latency_seconds_count[5m])",
+          "expr": "rate(go_gc_duration_seconds_sum[5m])",
           "refId": "A"
         }
       ],
-      "title": "Queue Processing Latency (5m avg)",
+      "title": "GC Duration (5m rate)",
       "type": "timeseries"
     },
     {
@@ -341,7 +243,7 @@
               "tooltip": false,
               "viz": false
             },
-            "lineInterpolation": "smooth",
+            "lineInterpolation": "linear",
             "lineWidth": 2,
             "pointSize": 5,
             "scaleDistribution": {
@@ -366,7 +268,8 @@
                 "value": null
               }
             ]
-          }
+          },
+          "unit": "bytes"
         },
         "overrides": []
       },
@@ -376,11 +279,11 @@
         "x": 12,
         "y": 8
       },
-      "id": 5,
+      "id": 4,
       "options": {
         "legend": {
-          "calcs": ["sum"],
-          "displayMode": "table",
+          "calcs": [],
+          "displayMode": "list",
           "placement": "bottom",
           "showLegend": true
         },
@@ -389,32 +292,25 @@
           "sort": "none"
         }
       },
+      "pluginVersion": "10.0.3",
       "targets": [
         {
           "datasource": {
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "rate(gomailer_email_errors_total[5m])",
+          "expr": "go_memstats_heap_alloc_bytes",
           "refId": "A"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "expr": "rate(gomailer_tcp_errors_total[5m])",
-          "refId": "B"
         }
       ],
-      "title": "Error Rate (5m)",
+      "title": "Heap Allocation",
       "type": "timeseries"
     }
   ],
   "refresh": "10s",
   "schemaVersion": 38,
   "style": "dark",
-  "tags": [],
+  "tags": ["gomailer", "api"],
   "templating": {
     "list": []
   },
@@ -424,7 +320,8 @@
   },
   "timepicker": {},
   "timezone": "",
-  "title": "GoMailer Dashboard",
+  "title": "GoMailer API Status",
+  "uid": "gomailer-api-status",
   "version": 1,
   "weekStart": ""
 }

@@ -1,15 +1,16 @@
 package main
 
 import (
-	"gomailer/config"
-	"gomailer/internal/email"
-	"gomailer/internal/queue"
-	"gomailer/internal/tcp"
 	"log"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
+
+	"github.com/Arturstriker3/api-go/config"
+	"github.com/Arturstriker3/api-go/internal/email"
+	"github.com/Arturstriker3/api-go/internal/queue"
+	"github.com/Arturstriker3/api-go/internal/tcp"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )

@@ -2,7 +2,7 @@ package email
 
 import (
 	"fmt"
-	"gomailer/config"
+	"github.com/Arturstriker3/api-go/config"
 	"gopkg.in/gomail.v2"
 )
 

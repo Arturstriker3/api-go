@@ -2,9 +2,10 @@ package tcp
 
 import (
 	"encoding/json"
-	"gomailer/config"
-	"gomailer/internal/email"
 	"log"
+
+	"github.com/Arturstriker3/api-go/config"
+	"github.com/Arturstriker3/api-go/internal/email"
 )
 
 type Handler struct {

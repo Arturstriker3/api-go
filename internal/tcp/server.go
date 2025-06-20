@@ -3,11 +3,12 @@ package tcp
 import (
 	"encoding/json"
 	"fmt"
-	"gomailer/config"
-	"gomailer/internal/email"
-	"gomailer/internal/metrics"
 	"log"
 	"net"
+
+	"github.com/Arturstriker3/api-go/config"
+	"github.com/Arturstriker3/api-go/internal/email"
+	"github.com/Arturstriker3/api-go/internal/metrics"
 )
 
 type Server struct {
