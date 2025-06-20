@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"gomailer/config"
 	"gomailer/internal/api"
 	"gomailer/internal/email"
@@ -14,15 +13,9 @@ import (
 
 func main() {
 	// Load configuration
-	cfg := config.NewConfig()
-
-	// Set SMTP credentials from environment variables
-	cfg.SMTP.User = os.Getenv("SMTP_USER")
-	cfg.SMTP.Password = os.Getenv("SMTP_PASSWORD")
-	cfg.SMTP.From = os.Getenv("SMTP_FROM")
-
-	if cfg.SMTP.User == "" || cfg.SMTP.Password == "" || cfg.SMTP.From == "" {
-		log.Fatal("SMTP credentials not set. Please set SMTP_USER, SMTP_PASSWORD, and SMTP_FROM environment variables")
+	cfg, err := config.LoadConfig()
+	if err != nil {
+		log.Fatalf("Failed to load configuration: %v", err)
 	}
 
 	// Initialize email service
@@ -54,12 +47,11 @@ func main() {
 
 	// Start the server in a goroutine
 	go func() {
+		log.Printf("Starting server on port %s", cfg.API.Port)
 		if err := router.Run(":" + cfg.API.Port); err != nil {
 			log.Fatalf("Failed to start server: %v", err)
 		}
 	}()
-
-	log.Printf("Server is running on port %s", cfg.API.Port)
 
 	// Wait for interrupt signal to gracefully shutdown
 	quit := make(chan os.Signal, 1)

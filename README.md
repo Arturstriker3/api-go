@@ -7,7 +7,7 @@ A microservice for handling email sending through a RabbitMQ queue, built with G
 - REST API for queuing emails
 - RabbitMQ integration for reliable message queuing
 - SMTP email sending with HTML support
-- Configurable via environment variables
+- Environment-based configuration
 - Docker support for RabbitMQ
 
 ## Prerequisites
@@ -33,11 +33,13 @@ go mod download
 
 3. Set up environment variables:
 
-```bash
-export SMTP_USER=your-email@example.com
-export SMTP_PASSWORD=your-smtp-password
-export SMTP_FROM=your-email@example.com
-```
+   - Copy the example environment file:
+
+   ```bash
+   cp env.example .env
+   ```
+
+   - Edit the `.env` file with your configuration
 
 4. Start RabbitMQ using Docker Compose:
 
@@ -51,7 +53,25 @@ docker-compose up -d
 go run cmd/main.go
 ```
 
-The service will start on port 8080 by default.
+The service will start on the configured port (default: 8080).
+
+## Environment Variables
+
+### Required Variables
+
+- `SMTP_USER`: SMTP server username (required)
+- `SMTP_PASSWORD`: SMTP server password (required)
+- `SMTP_FROM`: Email address to send from (required)
+
+### Optional Variables with Defaults
+
+- `SMTP_HOST`: SMTP server host (default: "smtp.gmail.com")
+- `SMTP_PORT`: SMTP server port (default: 587)
+- `RABBITMQ_HOST`: RabbitMQ host (default: "localhost")
+- `RABBITMQ_PORT`: RabbitMQ port (default: "5672")
+- `RABBITMQ_USER`: RabbitMQ username (default: "admin")
+- `RABBITMQ_PASSWORD`: RabbitMQ password (default: "admin")
+- `API_PORT`: API server port (default: "8080")
 
 ## API Usage
 
@@ -76,26 +96,12 @@ Response:
 }
 ```
 
-## Configuration
-
-The service can be configured through environment variables:
-
-- `SMTP_USER`: SMTP server username
-- `SMTP_PASSWORD`: SMTP server password
-- `SMTP_FROM`: Email address to send from
-
-Default configuration (can be modified in config/config.go):
-
-- SMTP Server: smtp.gmail.com:587
-- RabbitMQ: localhost:5672 (credentials: admin/admin)
-- API Port: 8080
-
 ## Architecture
 
 The service follows a clean architecture pattern with the following components:
 
 - `cmd/main.go`: Application entry point
-- `config/`: Configuration structures
+- `config/`: Configuration structures and environment handling
 - `internal/api/`: HTTP API handlers
 - `internal/email/`: Email sending service
 - `internal/queue/`: RabbitMQ consumer implementation
@@ -104,6 +110,7 @@ The service follows a clean architecture pattern with the following components:
 
 The service implements robust error handling:
 
+- Environment variable validation
 - Input validation for email requests
 - Queue connection error handling
 - SMTP sending error handling with message requeuing
@@ -113,13 +120,20 @@ The service implements robust error handling:
 
 To run the service in development mode:
 
-1. Start RabbitMQ:
+1. Copy and configure environment variables:
+
+```bash
+cp env.example .env
+# Edit .env with your settings
+```
+
+2. Start RabbitMQ:
 
 ```bash
 docker-compose up -d
 ```
 
-2. Run the service:
+3. Run the service:
 
 ```bash
 go run cmd/main.go
@@ -135,7 +149,7 @@ For production deployment:
 go build -o gomailer cmd/main.go
 ```
 
-2. Set up environment variables
+2. Set up environment variables in your production environment
 3. Configure a process manager (e.g., systemd)
 4. Set up proper monitoring and logging
 5. Use a production-grade SMTP service
