@@ -2,14 +2,16 @@ package main
 
 import (
 	"gomailer/config"
-	"gomailer/internal/api"
 	"gomailer/internal/email"
 	"gomailer/internal/queue"
 	"gomailer/internal/tcp"
 	"log"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
+
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 func main() {
@@ -37,29 +39,26 @@ func main() {
 		log.Fatalf("Failed to start consuming: %v", err)
 	}
 
-	// Initialize API handler
-	handler, err := api.NewHandler(cfg)
-	if err != nil {
-		log.Fatalf("Failed to create API handler: %v", err)
-	}
-
 	// Initialize TCP server
 	tcpServer, err := tcp.NewServer(cfg, emailService)
 	if err != nil {
 		log.Fatalf("Failed to create TCP server: %v", err)
 	}
 
-	// Setup router
-	router := api.SetupRouter(handler)
-
-	// Start the servers in goroutines
+	// Start metrics server in a separate goroutine
 	go func() {
-		log.Printf("Starting HTTP server on port %s", cfg.API.Port)
-		if err := router.Run(":" + cfg.API.Port); err != nil {
-			log.Fatalf("Failed to start HTTP server: %v", err)
+		metricsPort := cfg.Metrics.Port
+		if metricsPort == "" {
+			metricsPort = "9091" // Default metrics port
+		}
+		log.Printf("Starting metrics server on port %s", metricsPort)
+		http.Handle("/metrics", promhttp.Handler())
+		if err := http.ListenAndServe(":"+metricsPort, nil); err != nil {
+			log.Printf("Metrics server error: %v", err)
 		}
 	}()
 
+	// Start TCP server
 	go func() {
 		log.Printf("Starting TCP server on port %s", cfg.TCP.Port)
 		if err := tcpServer.Start(); err != nil {

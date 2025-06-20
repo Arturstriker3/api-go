@@ -11,8 +11,8 @@ import (
 type Config struct {
 	RabbitMQ RabbitMQConfig
 	SMTP     SMTPConfig
-	API      APIConfig
 	TCP      TCPConfig
+	Metrics  MetricsConfig
 }
 
 type RabbitMQConfig struct {
@@ -30,13 +30,13 @@ type SMTPConfig struct {
 	From     string
 }
 
-type APIConfig struct {
-	Port string
-}
-
 type TCPConfig struct {
 	Port       string
 	AuthSecret string
+}
+
+type MetricsConfig struct {
+	Port string
 }
 
 // LoadConfig loads the configuration from environment variables
@@ -64,12 +64,12 @@ func LoadConfig() (*Config, error) {
 			User:     getEnvWithDefault("RABBITMQ_USER", "admin"),
 			Password: getEnvWithDefault("RABBITMQ_PASSWORD", "admin"),
 		},
-		API: APIConfig{
-			Port: getEnvWithDefault("API_PORT", "8080"),
-		},
 		TCP: TCPConfig{
 			Port:       getEnvWithDefault("TCP_PORT", "9000"),
 			AuthSecret: os.Getenv("TCP_AUTH_SECRET"),
+		},
+		Metrics: MetricsConfig{
+			Port: getEnvWithDefault("METRICS_PORT", "9091"),
 		},
 	}
 
