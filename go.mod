@@ -1,4 +1,4 @@
-module github.com/Arturstriker3/gomailer
+module github.com/Arturstriker3/api-go
 
 go 1.24.4
 
