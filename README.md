@@ -1,5 +1,8 @@
 # GoMailer
 
+[![en](https://img.shields.io/badge/lang-en-red.svg)](./README.md)
+[![pt-br](https://img.shields.io/badge/lang-pt--br-green.svg)](./README.pt-br.md)
+
 A microservice for handling email sending through a RabbitMQ queue, built with Go.
 
 ## Features
