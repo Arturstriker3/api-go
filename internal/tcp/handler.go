@@ -6,6 +6,7 @@ import (
 
 	"github.com/Arturstriker3/api-go/config"
 	"github.com/Arturstriker3/api-go/internal/email"
+	"github.com/Arturstriker3/api-go/internal/metrics"
 )
 
 type Handler struct {
@@ -24,14 +25,17 @@ func (h *Handler) HandleMessage(message []byte) []byte {
 	var emailData email.EmailData
 	if err := json.Unmarshal(message, &emailData); err != nil {
 		log.Printf("Error parsing email data: %v", err)
+		metrics.EmailErrors.Inc()
 		return createErrorResponse("Invalid email data format")
 	}
 
 	if err := h.emailService.SendEmail(&emailData); err != nil {
 		log.Printf("Error sending email: %v", err)
+		metrics.EmailErrors.Inc()
 		return createErrorResponse("Failed to send email")
 	}
 
+	metrics.EmailsQueued.Inc()
 	return createSuccessResponse()
 }
 

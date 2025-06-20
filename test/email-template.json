@@ -1,0 +1,4 @@
+{
+  "subject": "Test Email from GoMailer",
+  "body": "<div style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;'>\n  <h1 style='color: #2c3e50;'>Welcome to GoMailer Test</h1>\n  <p style='color: #34495e; line-height: 1.6;'>\n    This is a test email sent from the GoMailer service.\n    If you're seeing this, the email system is working correctly!\n  </p>\n  <div style='background-color: #f8f9fa; padding: 15px; border-radius: 5px; margin: 20px 0;'>\n    <h2 style='color: #2c3e50; margin-top: 0;'>Test Information</h2>\n    <ul style='color: #34495e;'>\n      <li>Sent at: {{timestamp}}</li>\n      <li>Test number: {{testNumber}}</li>\n    </ul>\n  </div>\n  <p style='color: #7f8c8d; font-size: 0.9em;'>\n    This is an automated test message. Please ignore if received by mistake.\n  </p>\n</div>"
+}

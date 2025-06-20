@@ -2,7 +2,9 @@ package email
 
 import (
 	"fmt"
+
 	"github.com/Arturstriker3/api-go/config"
+	"github.com/Arturstriker3/api-go/internal/metrics"
 	"gopkg.in/gomail.v2"
 )
 
@@ -33,6 +35,7 @@ func NewEmailService(cfg *config.Config) *Service {
 
 func (s *Service) SendEmail(data *EmailData) error {
 	if len(data.To) == 0 {
+		metrics.EmailErrors.Inc()
 		return fmt.Errorf("recipient list is empty")
 	}
 
@@ -43,8 +46,10 @@ func (s *Service) SendEmail(data *EmailData) error {
 	m.SetBody("text/html", data.Body)
 
 	if err := s.dialer.DialAndSend(m); err != nil {
+		metrics.EmailErrors.Inc()
 		return fmt.Errorf("failed to send email: %w", err)
 	}
 
+	metrics.EmailsSent.Inc()
 	return nil
 } 

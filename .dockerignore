@@ -1,0 +1,58 @@
+# Version control
+.git
+.gitignore
+
+# Dependencies
+node_modules/
+vendor/
+
+# Environment and secrets
+.env
+*.env
+.env.*
+
+# Test files
+test/
+*_test.go
+*.test
+
+# Development tools
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+logs/
+
+# Build artifacts
+bin/
+dist/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Docker
+.docker/
+docker-compose.override.yml
+
+# Documentation
+docs/
+*.md
+!README.md
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Metrics and monitoring
+grafana/
+prometheus/
+
+# Debug files
+debug/
+*.debug 

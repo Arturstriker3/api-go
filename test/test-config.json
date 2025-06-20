@@ -1,0 +1,14 @@
+{
+  "connection": {
+    "host": "localhost",
+    "port": 9000,
+    "authSecret": "your-secret-key-here"
+  },
+  "email": {
+    "to": "jerod.hirthe81@ethereal.email",
+    "from": "gomailer@test.com"
+  },
+  "settings": {
+    "defaultDelay": 1000
+  }
+}

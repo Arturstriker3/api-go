@@ -119,6 +119,19 @@ func (c *Consumer) StartConsuming() error {
 		}
 	}()
 
+	// Start a goroutine to periodically update queue size
+	go func() {
+		ticker := time.NewTicker(5 * time.Second)
+		defer ticker.Stop()
+
+		for range ticker.C {
+			queue, err := c.channel.QueueInspect("email_queue")
+			if err == nil {
+				metrics.QueueSize.Set(float64(queue.Messages))
+			}
+		}
+	}()
+
 	return nil
 }
 
