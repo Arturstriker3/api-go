@@ -5,10 +5,8 @@ providers:
     orgId: 1
     folder: ""
     type: file
-    disableDeletion: false
-    editable: true
+    disableDeletion: true
     updateIntervalSeconds: 10
-    allowUiUpdates: true
+    allowUiUpdates: false
     options:
       path: /etc/grafana/provisioning/dashboards
-      foldersFromFilesStructure: true
