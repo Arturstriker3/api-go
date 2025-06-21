@@ -1,0 +1,87 @@
+version: "3.8"
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.tcp
+    container_name: gomailer_api_tcp
+    ports:
+      - "9000:9000" # TCP port
+      - "9091:9091" # Metrics port
+    environment:
+      # RabbitMQ Configuration
+      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_PORT=5672
+      - RABBITMQ_USER=admin
+      - RABBITMQ_PASSWORD=admin
+
+      # TCP Configuration (Development)
+      - TCP_ENABLED=true
+      - TCP_TLS_ENABLED=false
+      - TCP_AUTH_SECRET=docker-tcp-secret-change-me
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - gomailer_tcp_network
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: gomailer_rabbitmq
+    ports:
+      - "5672:5672" # AMQP protocol port
+      - "15672:15672" # Management interface port
+    environment:
+      - RABBITMQ_DEFAULT_USER=admin
+      - RABBITMQ_DEFAULT_PASS=admin
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "check_port_connectivity"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    networks:
+      - gomailer_tcp_network
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: gomailer_prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+    depends_on:
+      - api
+    networks:
+      - gomailer_tcp_network
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: gomailer_grafana
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    depends_on:
+      - prometheus
+    networks:
+      - gomailer_tcp_network
+
+networks:
+  gomailer_tcp_network:
+    driver: bridge
+
+volumes:
+  rabbitmq_data:
+  prometheus_data:
+  grafana_data:
