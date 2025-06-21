@@ -306,48 +306,63 @@
             "mode": "palette-classic"
           },
           "custom": {
-            "axisCenteredZero": false,
-            "axisColorMode": "text",
-            "axisLabel": "",
-            "axisPlacement": "auto",
-            "barAlignment": 0,
-            "drawStyle": "bars",
-            "fillOpacity": 100,
-            "gradientMode": "none",
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            },
-            "lineInterpolation": "linear",
-            "lineWidth": 0,
-            "pointSize": 5,
-            "scaleDistribution": {
-              "type": "linear"
-            },
-            "showPoints": "never",
-            "spanNulls": true,
-            "stacking": {
-              "group": "A",
-              "mode": "normal"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
+            "displayMode": "list",
+            "orientation": "horizontal"
           },
           "mappings": [],
+          "max": 100,
+          "min": 0,
           "thresholds": {
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
+                "color": "red",
                 "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 80
+              },
+              {
+                "color": "green",
+                "value": 95
               }
             ]
           },
-          "unit": "emails"
+          "unit": "percent"
         },
-        "overrides": []
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Success Rate"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "green"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Error Rate"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "red"
+                }
+              }
+            ]
+          }
+        ]
       },
       "gridPos": {
         "h": 8,
@@ -357,16 +372,16 @@
       },
       "id": 5,
       "options": {
-        "legend": {
-          "calcs": ["sum"],
-          "displayMode": "table",
-          "placement": "bottom",
-          "showLegend": true
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "",
+          "values": false
         },
-        "tooltip": {
-          "mode": "single",
-          "sort": "none"
-        }
+        "orientation": "auto",
+        "textMode": "auto",
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto"
       },
       "targets": [
         {
@@ -374,8 +389,8 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "increase(gomailer_emails_sent_total[1m])",
-          "legendFormat": "Sent",
+          "expr": "(gomailer_emails_sent_total / (gomailer_emails_sent_total + gomailer_email_errors_total)) * 100",
+          "legendFormat": "Success Rate",
           "refId": "A"
         },
         {
@@ -383,14 +398,15 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "increase(gomailer_email_errors_total[1m])",
-          "legendFormat": "Errors",
+          "expr": "(gomailer_email_errors_total / (gomailer_emails_sent_total + gomailer_email_errors_total)) * 100",
+          "legendFormat": "Error Rate",
           "refId": "B"
         }
       ],
-      "title": "Emails per Minute",
-      "type": "timeseries"
+      "title": "Email Success Rate",
+      "type": "stat"
     },
+
     {
       "datasource": {
         "type": "prometheus",
