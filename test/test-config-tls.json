@@ -8,7 +8,7 @@
     "caPath": "certs/ca-cert.pem"
   },
   "email": {
-    "to": "jerod.hirthe81@ethereal.email",
+    "to": "darrin47@ethereal.email",
     "from": "gomailer@test.com"
   },
   "settings": {

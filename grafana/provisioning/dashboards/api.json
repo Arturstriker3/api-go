@@ -267,7 +267,69 @@
           "refId": "A"
         }
       ],
-      "title": "TCP Connections",
+      "title": "TCP Connections (Plain)",
+      "type": "gauge"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 50
+              },
+              {
+                "color": "red",
+                "value": 100
+              }
+            ]
+          },
+          "unit": "none"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 6,
+        "x": 18,
+        "y": 0
+      },
+      "id": 12,
+      "options": {
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "",
+          "values": false
+        },
+        "showThresholdLabels": false,
+        "showThresholdMarkers": true
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "gomailer_tls_connections_current",
+          "refId": "A"
+        }
+      ],
+      "title": "TLS Connections (Secure)",
       "type": "gauge"
     },
     {
@@ -533,7 +595,7 @@
             "uid": "prometheus"
           },
           "expr": "gomailer_tcp_connections_current",
-          "legendFormat": "Active Connections",
+          "legendFormat": "TCP Active Connections",
           "refId": "A"
         },
         {
@@ -560,11 +622,56 @@
             "uid": "prometheus"
           },
           "expr": "rate(gomailer_tcp_auth_errors_total[1m]) * 60",
-          "legendFormat": "Auth Errors/min",
+          "legendFormat": "TCP Auth Errors/min",
           "refId": "D"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "gomailer_tls_connections_current",
+          "legendFormat": "TLS Active Connections",
+          "refId": "E"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "rate(gomailer_tls_errors_total[5m])",
+          "legendFormat": "TLS Errors/sec",
+          "refId": "F"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "rate(gomailer_tls_auth_success_total[1m]) * 60",
+          "legendFormat": "TLS Auth Success/min",
+          "refId": "G"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "rate(gomailer_tls_auth_errors_total[1m]) * 60",
+          "legendFormat": "TLS Auth Errors/min",
+          "refId": "H"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "gomailer_connections_by_type",
+          "legendFormat": "Connections by Type ({{type}})",
+          "refId": "I"
         }
       ],
-      "title": "TCP Metrics",
+      "title": "Connection Metrics",
       "type": "timeseries"
     },
     {
@@ -661,6 +768,133 @@
         }
       ],
       "title": "Go Runtime Metrics",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 20,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": true,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "s"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Certificate Expiry"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "d"
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 24
+      },
+      "id": 13,
+      "options": {
+        "legend": {
+          "calcs": ["mean", "max"],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "histogram_quantile(0.50, rate(gomailer_tls_handshake_seconds_bucket[5m]))",
+          "legendFormat": "TLS Handshake P50",
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "histogram_quantile(0.95, rate(gomailer_tls_handshake_seconds_bucket[5m]))",
+          "legendFormat": "TLS Handshake P95",
+          "refId": "B"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "histogram_quantile(0.99, rate(gomailer_tls_handshake_seconds_bucket[5m]))",
+          "legendFormat": "TLS Handshake P99",
+          "refId": "C"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "gomailer_tls_certificate_expiry_days",
+          "legendFormat": "Certificate Expiry (Days)",
+          "refId": "A"
+        }
+      ],
+      "title": "TLS Certificate Status",
       "type": "timeseries"
     }
   ],

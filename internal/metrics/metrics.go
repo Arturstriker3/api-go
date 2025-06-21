@@ -41,24 +41,35 @@ var (
 		Buckets: []float64{0.1, 0.5, 1, 2, 5, 10, 30, 60, 120},
 	})
 
-	// TCP metrics
+	// TCP metrics (plain)
 	TCPConnections = promauto.NewGauge(prometheus.GaugeOpts{
 		Name: "gomailer_tcp_connections_current",
-		Help: "Current number of active TCP connections",
+		Help: "Current number of active TCP connections (plain/insecure)",
 	})
 
 	TCPErrors = promauto.NewCounter(prometheus.CounterOpts{
 		Name: "gomailer_tcp_errors_total",
-		Help: "Total number of TCP connection errors",
+		Help: "Total number of TCP connection errors (plain)",
 	})
 
 	TCPAuthSuccess = promauto.NewCounter(prometheus.CounterOpts{
 		Name: "gomailer_tcp_auth_success_total",
-		Help: "Total number of successful TCP authentications",
+		Help: "Total number of successful TCP authentications (plain)",
 	})
 
 	TCPAuthErrors = promauto.NewCounter(prometheus.CounterOpts{
 		Name: "gomailer_tcp_auth_errors_total",
-		Help: "Total number of failed TCP authentications",
+		Help: "Total number of failed TCP authentications (plain)",
+	})
+
+	// TLS metrics (secure)
+	TLSConnections = promauto.NewGauge(prometheus.GaugeOpts{
+		Name: "gomailer_tls_connections_current",
+		Help: "Current number of active TLS connections (secure)",
+	})
+
+	TLSCertificateExpiry = promauto.NewGauge(prometheus.GaugeOpts{
+		Name: "gomailer_tls_certificate_expiry_days",
+		Help: "Days until TLS certificate expires",
 	})
 ) 

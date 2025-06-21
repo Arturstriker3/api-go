@@ -16,8 +16,8 @@ RUN go mod download
 # Copy source code
 COPY . .
 
-# Build the certificate generator
-RUN CGO_ENABLED=0 GOOS=linux go build -o generate-certs ./scripts/generate-certs.go
+# Build the certificate generator with correct build tag
+RUN CGO_ENABLED=0 GOOS=linux go build -tags generate_certs -o generate-certs ./scripts/generate-self-signed-certs.go
 
 # Build the application
 RUN CGO_ENABLED=0 GOOS=linux go build -o main ./cmd/main.go
@@ -33,7 +33,9 @@ WORKDIR /root/
 # Copy the binaries from builder
 COPY --from=builder /app/main .
 COPY --from=builder /app/generate-certs .
-COPY --from=builder /app/.env .
+
+# Copy user's environment file
+COPY --from=builder /app/.env ./
 
 # Create certificates directory
 RUN mkdir -p certs
@@ -43,18 +45,11 @@ EXPOSE 9000 9091
 
 # Create entrypoint script that generates certificates before starting the app
 RUN echo '#!/bin/sh' > /root/entrypoint.sh && \
-    echo 'echo "🔐 Generating TLS certificates..."' >> /root/entrypoint.sh && \
+    echo 'echo "🟡 Generating TLS certificates for Docker..."' >> /root/entrypoint.sh && \
     echo './generate-certs' >> /root/entrypoint.sh && \
-    echo 'echo "🚀 Starting GoMailer TLS server..."' >> /root/entrypoint.sh && \
+    echo 'echo "🟢 Starting GoMailer TLS server..."' >> /root/entrypoint.sh && \
     echo 'exec ./main' >> /root/entrypoint.sh && \
     chmod +x /root/entrypoint.sh
-
-# Set TLS environment variables
-ENV TCP_ENABLED=false
-ENV TCP_TLS_ENABLED=true
-ENV TCP_TLS_CERT_PATH=certs/server.crt
-ENV TCP_TLS_KEY_PATH=certs/server.key
-ENV TCP_TLS_CA_PATH=certs/ca-cert.pem
 
 # Command to run the application with TLS
 CMD ["./entrypoint.sh"] 
