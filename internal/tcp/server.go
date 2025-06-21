@@ -8,6 +8,7 @@ import (
 	"log"
 	"net"
 	"os"
+	"strings"
 	"sync"
 	"time"
 
@@ -111,17 +112,8 @@ func (s *Server) Start() error {
 		// Log connection type and update metrics
 		if s.config.TCP.TLS.Enabled {
 			if tlsConn, ok := conn.(*tls.Conn); ok {
-				log.Printf("🔒 New TLS connection from %s", conn.RemoteAddr())
-				// Log TLS details
-				state := tlsConn.ConnectionState()
-				log.Printf("   Cipher Suite: %s", tls.CipherSuiteName(state.CipherSuite))
-				log.Printf("   TLS Version: %x", state.Version)
-				
-				// Update TLS metrics
-				metrics.TLSConnections.Inc()
-				defer metrics.TLSConnections.Dec()
-				
-				go s.handleConnection(tlsConn, true)
+				// Don't log or count until handshake succeeds
+				go s.handleTLSConnection(tlsConn)
 			}
 		} else {
 			log.Printf("🟡 New insecure TCP connection from %s", conn.RemoteAddr())
@@ -142,6 +134,51 @@ func (s *Server) Stop() error {
 	return nil
 }
 
+func (s *Server) handleTLSConnection(tlsConn *tls.Conn) {
+	defer tlsConn.Close()
+	
+	// Perform TLS handshake first
+	if err := tlsConn.Handshake(); err != nil {
+		// Only log handshake failures if they're not from health checks
+		errStr := err.Error()
+		if !isHealthCheckError(errStr) {
+			log.Printf("🔴 TLS handshake failed from %s: %v", tlsConn.RemoteAddr(), err)
+		}
+		return
+	}
+	
+	// Log and count only successful TLS connections
+	log.Printf("🔒 TLS connection established from %s", tlsConn.RemoteAddr())
+	
+	// Log TLS details after successful handshake
+	state := tlsConn.ConnectionState()
+	log.Printf("   Cipher Suite: %s", tls.CipherSuiteName(state.CipherSuite))
+	log.Printf("   TLS Version: %x", state.Version)
+	
+	// Update TLS metrics only for successful connections
+	metrics.TLSConnections.Inc()
+	defer metrics.TLSConnections.Dec()
+	
+	s.handleConnection(tlsConn, true)
+}
+
+func isHealthCheckError(errStr string) bool {
+	// Common health check error patterns
+	healthCheckErrors := []string{
+		"bad record MAC",
+		"first record does not look like a TLS handshake",
+		"remote error: tls: unknown certificate authority",
+		"EOF",
+	}
+	
+	for _, pattern := range healthCheckErrors {
+		if strings.Contains(errStr, pattern) {
+			return true
+		}
+	}
+	return false
+}
+
 func (s *Server) handleConnection(conn net.Conn, isTLS bool) {
 	defer conn.Close()
 	
@@ -151,7 +188,9 @@ func (s *Server) handleConnection(conn net.Conn, isTLS bool) {
 		buffer := make([]byte, 4096)
 		n, err := conn.Read(buffer)
 		if err != nil {
-			log.Printf("Error reading message: %v", err)
+			if err.Error() != "EOF" {
+				log.Printf("🔴 Error reading message: %v", err)
+			}
 			return
 		}
 

@@ -2,13 +2,12 @@
   "connection": {
     "host": "localhost",
     "port": 9000,
-    "authSecret": "your-secret-key-here",
+    "authSecret": "docker-tls-secret-change-me",
     "tlsEnabled": true,
-    "rejectUnauthorized": false,
-    "caPath": "certs/ca-cert.pem"
+    "rejectUnauthorized": false
   },
   "email": {
-    "to": "darrin47@ethereal.email",
+    "to": "test@example.com",
     "from": "gomailer@test.com"
   },
   "settings": {

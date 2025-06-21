@@ -33,6 +33,16 @@ func main() {
 			fmt.Printf("🔴 Failed to generate certificates: %v\n", err)
 			os.Exit(1)
 		}
+		
+		// Create notification for new certificates
+		if isDockerEnvironment() {
+			if err := createCertificateNotification("NEW"); err != nil {
+				fmt.Printf("🟡 Warning: Could not create certificate notification: %v\n", err)
+			} else {
+				fmt.Println("🟡 Certificate notification created for email service")
+			}
+		}
+		
 		fmt.Println("🟢 Initial certificates generated successfully!")
 		return
 	}
@@ -51,6 +61,15 @@ func main() {
 		if err := generateCertificates(); err != nil {
 			fmt.Printf("🔴 Failed to renew certificates: %v\n", err)
 			os.Exit(1)
+		}
+
+		// Create notification for renewed certificates
+		if isDockerEnvironment() {
+			if err := createCertificateNotification("RENEWED"); err != nil {
+				fmt.Printf("🟡 Warning: Could not create certificate notification: %v\n", err)
+			} else {
+				fmt.Println("🟡 Certificate renewal notification created for email service")
+			}
 		}
 
 		fmt.Println("🟢 Certificates renewed successfully!")
@@ -201,4 +220,23 @@ func copyFile(src, dst string) error {
 		return err
 	}
 	return os.WriteFile(dst, input, 0644)
+}
+
+func isDockerEnvironment() bool {
+	// Check if running inside Docker
+	if _, err := os.Stat("/.dockerenv"); err == nil {
+		return true
+	}
+	return false
+}
+
+func createCertificateNotification(action string) error {
+	// Create a notification file that the API can detect
+	notification := fmt.Sprintf(`{
+	"action": "%s",
+	"timestamp": "%s",
+	"certificate_path": "certs/ca-cert.pem"
+}`, action, time.Now().Format(time.RFC3339))
+
+	return os.WriteFile("certs/certificate_notification.json", []byte(notification), 0644)
 } 

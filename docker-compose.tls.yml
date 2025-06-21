@@ -23,9 +23,6 @@ services:
       - TCP_TLS_KEY_PATH=certs/server.key
       - TCP_TLS_CA_PATH=certs/ca-cert.pem
 
-      # Auth Secret (should be overridden with secure value)
-      - TCP_AUTH_SECRET=docker-tls-secret-change-me
-
     depends_on:
       rabbitmq:
         condition: service_healthy
@@ -38,12 +35,12 @@ services:
           "CMD",
           "sh",
           "-c",
-          "echo 'quit' | openssl s_client -connect localhost:9000 -ign_eof",
+          "timeout 3 openssl s_client -connect localhost:9000 -verify_return_error -quiet < /dev/null",
         ]
-      interval: 30s
-      timeout: 10s
+      interval: 60s
+      timeout: 5s
       retries: 3
-      start_period: 15s
+      start_period: 30s
 
   rabbitmq:
     image: rabbitmq:3-management

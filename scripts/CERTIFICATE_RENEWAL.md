@@ -1,5 +1,56 @@
 # 🔄 GoMailer Certificate Auto-Renewal System
 
+## 📧 **Entrega Automática de Certificados por Email**
+
+Quando executado no Docker com SMTP configurado, o GoMailer envia automaticamente o certificado CA para seu email:
+
+### **Quando os Certificados são Enviados:**
+
+- ✅ **Geração Inicial**: Quando certificados são criados pela primeira vez
+- ✅ **Renovação Automática**: Quando certificados são renovados automaticamente (30 dias antes do vencimento)
+- ✅ **Renovação Manual**: Quando você executa manualmente o script de renovação
+
+### **Requisitos para Email:**
+
+O certificado será enviado automaticamente se TODAS as condições forem atendidas:
+
+1. 🐳 **Executando no Docker** (detecta arquivo `/.dockerenv`)
+2. 📧 **SMTP configurado** com estas variáveis de ambiente:
+   - `SMTP_HOST` - Seu servidor SMTP
+   - `SMTP_USER` - Seu endereço de email (destinatário)
+   - `SMTP_PASSWORD` - Sua senha de email/senha de app
+
+### **Conteúdo do Email:**
+
+O email contém:
+
+- 📜 **Conteúdo completo do certificado CA** pronto para salvar como `ca-cert.pem`
+- 📋 **Instruções de uso** para aplicações cliente
+- 🔍 **Detalhes do certificado** (data de expiração, organização, etc.)
+- 💡 **Exemplos de integração** NestJS/Node.js
+
+### **Exemplo de Configuração de Email:**
+
+```env
+# No seu arquivo .env
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=seu-email@gmail.com
+SMTP_PASSWORD=sua-senha-de-app
+SMTP_FROM=seu-email@gmail.com
+```
+
+### **Benefícios:**
+
+- 🚀 **Sem extração manual** de certificados dos containers Docker
+- 📨 **Entrega instantânea** quando certificados são gerados/renovados
+- 🔄 **Atualizações automáticas** - receba certificados renovados por email
+- 💾 **Backup fácil** - certificados ficam salvos no seu email
+
+---
+
+## 🔄 **Renovação Automática de Certificados**
+
 Sistema de renovação automática de certificados auto-assinados para produção **sem downtime**.
 
 ## 📋 **Scripts Disponíveis**

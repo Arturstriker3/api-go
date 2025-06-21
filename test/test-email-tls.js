@@ -50,15 +50,22 @@ class EmailTestTLSClient {
         rejectUnauthorized: this.config.connection.rejectUnauthorized !== false,
       };
 
-      // Add CA certificate if specified
+      // Add CA certificate if specified and file exists
       if (this.config.connection.caPath) {
         try {
-          const ca = require("fs").readFileSync(this.config.connection.caPath);
-          options.ca = [ca];
-          console.log(
-            "📜 Using CA certificate:",
-            this.config.connection.caPath
-          );
+          const fs = require("fs");
+          if (fs.existsSync(this.config.connection.caPath)) {
+            const ca = fs.readFileSync(this.config.connection.caPath);
+            options.ca = [ca];
+            console.log(
+              "📜 Using CA certificate:",
+              this.config.connection.caPath
+            );
+          } else {
+            console.log(
+              "📜 CA certificate path specified but file not found, proceeding without it"
+            );
+          }
         } catch (err) {
           console.warn(
             "⚠️  Warning: Could not load CA certificate:",

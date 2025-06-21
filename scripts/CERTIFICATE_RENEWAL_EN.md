@@ -1,5 +1,91 @@
 # 🔄 GoMailer Certificate Auto-Renewal System
 
+## 📧 **Automatic Certificate Email Delivery**
+
+When running in Docker with SMTP configured, GoMailer automatically sends the CA certificate to your email using the **internal email infrastructure**:
+
+### **🏗️ New Architecture:**
+
+- ✅ **Scripts**: Only handle certificate generation (clean separation)
+- ✅ **API Email Service**: Handles all email sending (reuses existing infrastructure)
+- ✅ **Notification System**: Scripts create notifications, API monitors and sends emails
+- ✅ **Unified Queue**: Certificate emails go through the same RabbitMQ queue as regular emails
+
+### **When Certificates are Emailed:**
+
+- ✅ **Initial Generation**: When certificates are created for the first time
+- ✅ **Auto-Renewal**: When certificates are automatically renewed (30 days before expiry)
+- ✅ **Manual Renewal**: When you manually run the renewal script
+
+### **Email Requirements:**
+
+The certificate will be automatically emailed if ALL conditions are met:
+
+1. 🐳 **Running in Docker** (detects `/.dockerenv` file)
+2. 📧 **SMTP configured** with these environment variables:
+   - `SMTP_HOST` - Your SMTP server
+   - `SMTP_USER` - Your email address (default recipient)
+   - `SMTP_PASSWORD` - Your email password/app password
+3. 🎯 **Recipient configured** (optional):
+   - `CERTIFICATE_EMAIL_RECIPIENT` - Specific email for certificates (defaults to `SMTP_USER`)
+
+### **How It Works:**
+
+```mermaid
+graph TD
+    A[Certificate Script] --> B[Generate Certificates]
+    B --> C[Create Notification File]
+    C --> D[notification.json]
+
+    E[GoMailer API] --> F[Notification Watcher]
+    F --> G[Detect New Notification]
+    G --> H[Certificate Email Service]
+    H --> I[Existing Email Infrastructure]
+    I --> J[RabbitMQ Queue]
+    J --> K[Email Consumer]
+    K --> L[Send via SMTP]
+```
+
+### **Example Configuration:**
+
+```env
+# In your .env file
+SMTP_HOST=smtp.ethereal.email
+SMTP_PORT=587
+SMTP_USER=darrin47@ethereal.email
+SMTP_PASSWORD=gCkDVGUMxGhzSbMxQS
+SMTP_FROM=darrin47@ethereal.email
+
+# Optional: Different recipient for certificates
+CERTIFICATE_EMAIL_RECIPIENT=admin@company.com
+
+# Other configurations...
+TCP_ENABLED=false
+TCP_TLS_ENABLED=true
+```
+
+### **Benefits of New Architecture:**
+
+- 🚀 **Reuses existing infrastructure** - no duplicate SMTP code
+- 📨 **Unified email queue** - all emails go through RabbitMQ
+- 🔄 **Better error handling** - uses existing retry mechanisms
+- 🎯 **Separation of concerns** - scripts only handle certificates
+- 📊 **Metrics integration** - certificate emails counted in Prometheus
+- 🛡️ **Security** - uses existing authentication and configuration
+
+### **Email Content:**
+
+The email contains:
+
+- 📜 **Complete CA certificate content** ready to save as `ca-cert.pem`
+- 📋 **Usage instructions** for client applications
+- 🔍 **Certificate details** (expiry date, organization, etc.)
+- 💡 **NestJS/Node.js integration examples**
+
+---
+
+## 🔄 **Certificate Auto-Renewal**
+
 Automatic self-signed certificate renewal system for production **without downtime**.
 
 ## 📋 **Available Scripts**

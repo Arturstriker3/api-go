@@ -111,6 +111,16 @@ func main() {
 	fmt.Println("- certs/server.crt (Server certificate)")
 	fmt.Println("- certs/ca-cert.pem (CA certificate for client validation)")
 	fmt.Println("")
+
+	// Create notification file for the API to detect new certificates
+	if isDockerEnvironment() {
+		if err := createCertificateNotification("NEW"); err != nil {
+			fmt.Printf("🟡 Warning: Could not create certificate notification: %v\n", err)
+		} else {
+			fmt.Println("🟡 Certificate notification created for email service")
+		}
+	}
+
 	fmt.Println("🟢 You can now start the GoMailer TLS server!")
 }
 
@@ -121,4 +131,23 @@ func copyFile(src, dst string) error {
 	}
 	
 	return os.WriteFile(dst, input, 0644)
+}
+
+func isDockerEnvironment() bool {
+	// Check if running inside Docker
+	if _, err := os.Stat("/.dockerenv"); err == nil {
+		return true
+	}
+	return false
+}
+
+func createCertificateNotification(action string) error {
+	// Create a notification file that the API can detect
+	notification := fmt.Sprintf(`{
+	"action": "%s",
+	"timestamp": "%s",
+	"certificate_path": "certs/ca-cert.pem"
+}`, action, time.Now().Format(time.RFC3339))
+
+	return os.WriteFile("certs/certificate_notification.json", []byte(notification), 0644)
 } 

@@ -1,11 +1,13 @@
 package main
 
 import (
+	"encoding/json"
 	"log"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/Arturstriker3/api-go/config"
 	"github.com/Arturstriker3/api-go/internal/email"
@@ -14,6 +16,12 @@ import (
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
+
+type CertificateNotification struct {
+	Action          string `json:"action"`
+	Timestamp       string `json:"timestamp"`
+	CertificatePath string `json:"certificate_path"`
+}
 
 func main() {
 	// Load configuration
@@ -24,6 +32,9 @@ func main() {
 
 	// Initialize email service
 	emailService := email.NewEmailService(cfg)
+
+	// Initialize certificate email service
+	certEmailService := email.NewCertificateEmailService(emailService)
 
 	// Initialize consumer
 	consumer, err := queue.NewConsumer(cfg, emailService)
@@ -45,6 +56,9 @@ func main() {
 	if err != nil {
 		log.Fatalf("🔴 Failed to create TCP server: %v", err)
 	}
+
+	// Start certificate notification watcher
+	go startCertificateNotificationWatcher(certEmailService)
 
 	// Start metrics server in a separate goroutine
 	go func() {
@@ -77,5 +91,58 @@ func main() {
 	// Graceful shutdown
 	if err := tcpServer.Stop(); err != nil {
 		log.Printf("🔴 Error stopping TCP server: %v", err)
+	}
+}
+
+// startCertificateNotificationWatcher monitors for certificate notifications and sends emails
+func startCertificateNotificationWatcher(certEmailService *email.CertificateEmailService) {
+	log.Println("🔍 Certificate notification watcher started")
+	
+	ticker := time.NewTicker(10 * time.Second) // Check every 10 seconds
+	defer ticker.Stop()
+	
+	var lastProcessed time.Time
+
+	for range ticker.C {
+		notificationFile := "certs/certificate_notification.json"
+		
+		// Check if notification file exists
+		stat, err := os.Stat(notificationFile)
+		if err != nil {
+			continue // No notification file
+		}
+		
+		// Check if this is a new notification
+		if stat.ModTime().After(lastProcessed) {
+			// Read notification
+			data, err := os.ReadFile(notificationFile)
+			if err != nil {
+				log.Printf("🔴 Error reading certificate notification: %v", err)
+				continue
+			}
+			
+			var notification CertificateNotification
+			if err := json.Unmarshal(data, &notification); err != nil {
+				log.Printf("🔴 Error parsing certificate notification: %v", err)
+				continue
+			}
+			
+			log.Printf("🟡 Processing certificate notification: %s", notification.Action)
+			
+			// Send certificate email
+			if err := certEmailService.SendCertificateEmail(notification.Action); err != nil {
+				log.Printf("🟡 Warning: Could not send certificate email: %v", err)
+			} else {
+				log.Printf("✅ Certificate email sent successfully for action: %s", notification.Action)
+			}
+			
+			// Update last processed time
+			lastProcessed = stat.ModTime()
+			
+			// Optionally remove the notification file after processing
+			if err := os.Remove(notificationFile); err != nil {
+				log.Printf("🟡 Warning: Could not remove notification file: %v", err)
+			}
+		}
 	}
 } 

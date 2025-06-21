@@ -891,7 +891,7 @@
           },
           "expr": "gomailer_tls_certificate_expiry_days",
           "legendFormat": "Certificate Expiry (Days)",
-          "refId": "A"
+          "refId": "D"
         }
       ],
       "title": "TLS Certificate Status",
