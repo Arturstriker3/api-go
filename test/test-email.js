@@ -1,4 +1,5 @@
 const net = require("net");
+const tls = require("tls");
 const fs = require("fs").promises;
 const path = require("path");
 const readline = require("readline");
@@ -27,40 +28,119 @@ class EmailTestClient {
 
       this.config = JSON.parse(configData);
       this.emailTemplate = JSON.parse(templateData);
-      console.log("Config loaded:", {
+
+      const connectionType = this.config.connection.tlsEnabled
+        ? "🔒 TLS"
+        : "⚠️  TCP";
+      console.log(`${connectionType} Config loaded:`, {
         host: this.config.connection.host,
         port: this.config.connection.port,
-        authSecret: this.config.connection.authSecret,
+        tlsEnabled: this.config.connection.tlsEnabled || false,
+        authSecret: this.config.connection.authSecret ? "***" : "NOT_SET",
       });
     } catch (error) {
-      console.error("Error loading configuration:", error.message);
+      console.error("❌ Error loading configuration:", error.message);
       process.exit(1);
     }
   }
 
   connect() {
     return new Promise((resolve, reject) => {
-      this.client = new net.Socket();
       this.authenticated = false;
 
-      this.client.connect(
-        this.config.connection.port,
-        this.config.connection.host,
-        () => {
-          console.log("Connected to server");
-          resolve();
+      if (this.config.connection.tlsEnabled) {
+        // TLS Connection
+        const options = {
+          host: this.config.connection.host,
+          port: this.config.connection.port,
+          rejectUnauthorized:
+            this.config.connection.rejectUnauthorized !== false,
+        };
+
+        // Add CA certificate if specified
+        if (this.config.connection.caPath) {
+          try {
+            const ca = require("fs").readFileSync(
+              this.config.connection.caPath
+            );
+            options.ca = [ca];
+            console.log(
+              "📜 Using CA certificate:",
+              this.config.connection.caPath
+            );
+          } catch (err) {
+            console.warn(
+              "⚠️  Warning: Could not load CA certificate:",
+              err.message
+            );
+          }
         }
-      );
 
-      this.client.on("error", (error) => {
-        console.error("Connection error:", error.message);
-        reject(error);
-      });
+        console.log("🔗 Attempting TLS connection...");
+        this.client = tls.connect(options, () => {
+          console.log("✅ TLS connection established");
+          console.log("🔒 Connection details:");
+          console.log("   Authorized:", this.client.authorized);
+          console.log("   Cipher:", this.client.getCipher().name);
+          console.log("   Protocol:", this.client.getProtocol());
 
-      this.client.on("close", () => {
-        console.log("Connection closed by server");
-        this.authenticated = false;
-      });
+          if (!this.client.authorized) {
+            console.log(
+              "⚠️  Certificate not authorized:",
+              this.client.authorizationError
+            );
+            if (this.config.connection.rejectUnauthorized !== false) {
+              reject(
+                new Error(
+                  "TLS certificate not authorized: " +
+                    this.client.authorizationError
+                )
+              );
+              return;
+            }
+          }
+
+          resolve();
+        });
+
+        this.client.on("error", (error) => {
+          console.error("❌ TLS connection error:", error.message);
+          if (error.code === "DEPTH_ZERO_SELF_SIGNED_CERT") {
+            console.log(
+              "💡 Tip: Set 'rejectUnauthorized: false' in config for self-signed certificates"
+            );
+          }
+          reject(error);
+        });
+
+        this.client.on("close", () => {
+          console.log("🔌 TLS connection closed");
+          this.authenticated = false;
+        });
+      } else {
+        // Regular TCP Connection
+        this.client = new net.Socket();
+
+        this.client.connect(
+          this.config.connection.port,
+          this.config.connection.host,
+          () => {
+            console.log("⚠️  Connected to server (INSECURE TCP)");
+            console.log("💡 Consider enabling TLS for secure communication");
+            resolve();
+          }
+        );
+
+        this.client.on("error", (error) => {
+          console.error("❌ Connection error:", error.message);
+          reject(error);
+        });
+
+        this.client.on("close", () => {
+          console.log("🔌 Connection closed by server");
+          this.authenticated = false;
+        });
+      }
     });
   }
 
@@ -75,11 +155,14 @@ class EmailTestClient {
         secret: this.config.connection.authSecret,
       };
 
-      console.log("Sending auth data:", authData);
+      const authType = this.config.connection.tlsEnabled
+        ? "🔑 encrypted"
+        : "⚠️  plain text";
+      console.log(`Sending authentication (${authType})...`);
 
       const responseHandler = (data) => {
         const response = data.toString().trim();
-        console.log("Auth response received:", response);
+        console.log("✅ Auth response received:", response);
         this.client.removeListener("data", responseHandler);
 
         try {
@@ -88,11 +171,14 @@ class EmailTestClient {
             reject(new Error(parsed.error));
           } else {
             this.authenticated = true;
-            console.log("Authentication successful");
+            const securityStatus = this.config.connection.tlsEnabled
+              ? "🎉 secured with TLS!"
+              : "⚠️  but connection is not encrypted!";
+            console.log(`Authentication successful - ${securityStatus}`);
             resolve();
           }
         } catch (e) {
-          console.error("Failed to parse auth response:", e.message);
+          console.error("❌ Failed to parse auth response:", e.message);
           reject(new Error("Invalid response format"));
         }
       };

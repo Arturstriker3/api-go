@@ -1,0 +1,87 @@
+# GoMailer TLS Connection Settings
+# Copy this file to .env in your application for secure TLS connections
+
+# GoMailer Service Connection (TLS Secure)
+GOMAILER_HOST=localhost
+GOMAILER_PORT=9000
+GOMAILER_AUTH_SECRET=your-secret-key
+GOMAILER_TLS_ENABLED=true
+GOMAILER_REJECT_UNAUTHORIZED=false
+GOMAILER_CA_PATH=certs/ca-cert.pem
+
+# TLS Message Format (JSON - Encrypted):
+
+# 1. Authentication Message:
+# {
+#   "secret": "your-secret-key"
+# }
+
+# 2. Email Request Message:
+# {
+#   "to": ["recipient@example.com"],
+#   "subject": "Email Subject",
+#   "body": "<h1>HTML Content</h1>"
+# }
+
+# 3. Response Format:
+# Success: {"message": "Email queued successfully"}
+# Error: {"error": "Error message here"}
+
+# Example in Node.js with TLS:
+#
+# const tls = require('tls');
+# const fs = require('fs');
+# 
+# const options = {
+#   host: process.env.GOMAILER_HOST,
+#   port: process.env.GOMAILER_PORT,
+#   rejectUnauthorized: process.env.GOMAILER_REJECT_UNAUTHORIZED !== 'false',
+#   ca: process.env.GOMAILER_CA_PATH ? [fs.readFileSync(process.env.GOMAILER_CA_PATH)] : undefined
+# };
+#
+# const client = tls.connect(options, () => {
+#   console.log('🔒 TLS connection established');
+#   console.log('Authorized:', client.authorized);
+#   console.log('Cipher:', client.getCipher().name);
+#   
+#   // Send auth (encrypted)
+#   const auth = { secret: process.env.GOMAILER_AUTH_SECRET };
+#   client.write(JSON.stringify(auth));
+#
+#   // Send email (encrypted)
+#   const email = {
+#     to: ["recipient@example.com"],
+#     subject: "Secure TLS Email",
+#     body: "<h1>🔒 This message was sent securely via TLS</h1>"
+#   };
+#   client.write(JSON.stringify(email));
+# });
+#
+# client.on('data', (data) => {
+#   console.log('📥 Encrypted response:', JSON.parse(data.toString()));
+#   client.destroy();
+# });
+#
+# client.on('error', (error) => {
+#   console.error('❌ TLS Error:', error.message);
+# });
+
+# Security Notes (TLS):
+# 1. ✅ All data is encrypted end-to-end
+# 2. ✅ Auth secret is protected from interception
+# 3. ✅ Server identity is verified via certificates
+# 4. 🔒 For development: Use rejectUnauthorized=false with self-signed certs
+# 5. 🛡️  For production: Always use rejectUnauthorized=true with valid certs
+# 6. 📜 Keep certificate files secure and update regularly
+# 7. 🚫 Never commit certificate private keys to version control
+
+# Certificate Generation:
+# Run: go run scripts/generate-certs.go
+# Files created: certs/server.crt, certs/server.key, certs/ca-cert.pem
+
+# Environment Variables for GoMailer Server:
+# TCP_ENABLED=false
+# TCP_TLS_ENABLED=true
+# TCP_TLS_CERT_PATH=certs/server.crt
+# TCP_TLS_KEY_PATH=certs/server.key
+# TCP_TLS_CA_PATH=certs/ca-cert.pem 

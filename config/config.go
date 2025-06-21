@@ -33,6 +33,15 @@ type SMTPConfig struct {
 type TCPConfig struct {
 	Port       string
 	AuthSecret string
+	Enabled    bool
+	TLS        TLSConfig
+}
+
+type TLSConfig struct {
+	Enabled  bool
+	CertPath string
+	KeyPath  string
+	CAPath   string
 }
 
 type MetricsConfig struct {
@@ -67,6 +76,13 @@ func LoadConfig() (*Config, error) {
 		TCP: TCPConfig{
 			Port:       getEnvWithDefault("TCP_PORT", "9000"),
 			AuthSecret: os.Getenv("TCP_AUTH_SECRET"),
+			Enabled:    getEnvWithDefault("TCP_ENABLED", "true") == "true",
+			TLS: TLSConfig{
+				Enabled:  getEnvWithDefault("TCP_TLS_ENABLED", "false") == "true",
+				CertPath: getEnvWithDefault("TCP_TLS_CERT_PATH", "certs/server.crt"),
+				KeyPath:  getEnvWithDefault("TCP_TLS_KEY_PATH", "certs/server.key"),
+				CAPath:   getEnvWithDefault("TCP_TLS_CA_PATH", "certs/ca-cert.pem"),
+			},
 		},
 		Metrics: MetricsConfig{
 			Port: getEnvWithDefault("METRICS_PORT", "9091"),

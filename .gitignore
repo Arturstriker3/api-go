@@ -53,4 +53,12 @@ TODO.md
 debug/
 
 # Air live reload
-tmp/ 
+tmp/
+
+# TLS Certificates (Security: Never commit certificates to version control)
+certs/
+*.crt
+*.key
+*.pem
+*.p12
+*.pfx 

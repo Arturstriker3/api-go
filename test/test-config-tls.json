@@ -2,7 +2,7 @@
   "connection": {
     "host": "localhost",
     "port": 9000,
-    "authSecret": "test-secret-123",
+    "authSecret": "your-secret-key-here",
     "tlsEnabled": true,
     "rejectUnauthorized": false,
     "caPath": "certs/ca-cert.pem"

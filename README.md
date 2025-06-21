@@ -81,7 +81,12 @@ O serviço iniciará o servidor TCP na porta 9000 (padrão) e métricas na porta
 - `RABBITMQ_PORT`: Porta do RabbitMQ (padrão: "5672")
 - `RABBITMQ_USER`: Usuário do RabbitMQ (padrão: "admin")
 - `RABBITMQ_PASSWORD`: Senha do RabbitMQ (padrão: "admin")
-- `TCP_PORT`: Porta do servidor TCP (padrão: "9000")
+- `TCP_PORT`: Porta do servidor TCP/TLS (padrão: "9000")
+- `TCP_ENABLED`: Habilita TCP simples (padrão: "true")
+- `TCP_TLS_ENABLED`: Habilita TLS seguro (padrão: "false")
+- `TCP_TLS_CERT_PATH`: Caminho do certificado TLS (padrão: "certs/server.crt")
+- `TCP_TLS_KEY_PATH`: Caminho da chave privada TLS (padrão: "certs/server.key")
+- `TCP_TLS_CA_PATH`: Caminho do certificado CA (padrão: "certs/ca-cert.pem")
 - `METRICS_PORT`: Porta das métricas Prometheus (padrão: "9091")
 
 ## Integração via TCP
@@ -129,11 +134,29 @@ go get github.com/Arturstriker3/api-go
 
 2. Configure as variáveis de ambiente no seu serviço:
 
+Para **TCP simples** (desenvolvimento):
+
 ```env
 GOMAILER_HOST=localhost
 GOMAILER_PORT=9000
 GOMAILER_AUTH_SECRET=seu-segredo-aqui
 ```
+
+Para **TLS seguro** (produção):
+
+```env
+GOMAILER_HOST=localhost
+GOMAILER_PORT=9000
+GOMAILER_AUTH_SECRET=seu-segredo-aqui
+GOMAILER_TLS_ENABLED=true
+GOMAILER_REJECT_UNAUTHORIZED=false
+GOMAILER_CA_PATH=certs/ca-cert.pem
+```
+
+**📁 Arquivos de exemplo disponíveis:**
+
+- `tcp.example` - Configuração TCP simples
+- `tls.example` - Configuração TLS segura
 
 ### Exemplo de Integração com NestJS
 
@@ -277,6 +300,153 @@ O serviço NestJS gerencia:
 - Reconexão em falhas
 - Desligamento limpo
 - Segurança de tipos com TypeScript
+
+## Integração via TLS (Recomendado para Produção)
+
+Para conexões seguras com criptografia TLS, siga os passos abaixo:
+
+### 1. Gerar Certificados TLS
+
+```bash
+# Gerar certificados auto-assinados para desenvolvimento
+go run scripts/generate-certs.go
+```
+
+### 2. Configurar Servidor TLS
+
+Configure as variáveis de ambiente:
+
+```env
+# Desabilitar TCP simples
+TCP_ENABLED=false
+
+# Habilitar TLS seguro
+TCP_TLS_ENABLED=true
+TCP_TLS_CERT_PATH=certs/server.crt
+TCP_TLS_KEY_PATH=certs/server.key
+TCP_TLS_CA_PATH=certs/ca-cert.pem
+```
+
+### 3. Cliente Node.js com TLS
+
+```javascript
+const tls = require("tls");
+const fs = require("fs");
+
+const options = {
+  host: process.env.GOMAILER_HOST,
+  port: process.env.GOMAILER_PORT,
+  rejectUnauthorized: process.env.NODE_ENV === "production",
+  ca: process.env.GOMAILER_CA_PATH
+    ? [fs.readFileSync(process.env.GOMAILER_CA_PATH)]
+    : undefined,
+};
+
+const client = tls.connect(options, () => {
+  console.log("🔒 TLS connection established");
+  console.log("Authorized:", client.authorized);
+  console.log("Cipher:", client.getCipher().name);
+
+  // Enviar autenticação (criptografada)
+  const auth = { secret: process.env.GOMAILER_AUTH_SECRET };
+  client.write(JSON.stringify(auth));
+
+  // Enviar email (criptografado)
+  const email = {
+    to: ["destinatario@exemplo.com"],
+    subject: "Email Seguro via TLS",
+    body: "<h1>🔒 Esta mensagem foi enviada de forma segura via TLS</h1>",
+  };
+  client.write(JSON.stringify(email));
+});
+
+client.on("data", (data) => {
+  console.log("📥 Resposta criptografada:", JSON.parse(data.toString()));
+  client.destroy();
+});
+```
+
+### 4. Integração NestJS com TLS
+
+```typescript
+// src/services/gomailer-tls.service.ts
+import { Injectable, OnModuleInit } from "@nestjs/common";
+import * as tls from "tls";
+import * as fs from "fs";
+
+@Injectable()
+export class GomailerTLSService implements OnModuleInit {
+  private client: tls.TLSSocket;
+  private connected: boolean = false;
+
+  private connect(): Promise<void> {
+    return new Promise((resolve, reject) => {
+      const options = {
+        host: process.env.GOMAILER_HOST || "localhost",
+        port: parseInt(process.env.GOMAILER_PORT || "9000"),
+        rejectUnauthorized: process.env.NODE_ENV === "production",
+        ca: process.env.GOMAILER_CA_PATH
+          ? [fs.readFileSync(process.env.GOMAILER_CA_PATH)]
+          : undefined,
+      };
+
+      this.client = tls.connect(options, () => {
+        console.log("🔒 TLS connection established");
+        this.connected = true;
+
+        // Enviar autenticação criptografada
+        const auth = { secret: process.env.GOMAILER_AUTH_SECRET };
+        this.client.write(JSON.stringify(auth));
+        resolve();
+      });
+
+      this.client.on("error", (error) => {
+        this.connected = false;
+        reject(error);
+      });
+    });
+  }
+
+  async sendEmail(request: EmailRequest): Promise<void> {
+    if (!this.connected) {
+      await this.connect();
+    }
+
+    // Dados enviados de forma criptografada
+    return new Promise((resolve, reject) => {
+      this.client.write(JSON.stringify(request));
+      // ... resto da implementação
+    });
+  }
+}
+```
+
+### Comparação TCP vs TLS
+
+| Aspecto           | TCP Simples    | TLS                |
+| ----------------- | -------------- | ------------------ |
+| **Criptografia**  | ❌ Nenhuma     | ✅ AES-256         |
+| **Auth Secret**   | ⚠️ Texto claro | ✅ Criptografado   |
+| **Interceptação** | ❌ Vulnerável  | 🛡️ Protegido       |
+| **Performance**   | 🟢 Rápido      | 🟡 Overhead mínimo |
+| **Configuração**  | 🟢 Simples     | 🟡 Certificados    |
+| **Produção**      | ❌ Inseguro    | ✅ Recomendado     |
+
+### Configurações de Segurança
+
+#### Desenvolvimento
+
+```env
+TCP_ENABLED=true
+TCP_TLS_ENABLED=false
+```
+
+#### Produção (Recomendado)
+
+```env
+TCP_ENABLED=false
+TCP_TLS_ENABLED=true
+```
 
 ## Monitoramento
 

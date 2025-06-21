@@ -1,6 +1,7 @@
 package tcp
 
 import (
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -28,13 +29,55 @@ func NewServer(cfg *config.Config, emailService *email.Service) (*Server, error)
 }
 
 func (s *Server) Start() error {
-	listener, err := net.Listen("tcp", fmt.Sprintf(":%s", s.config.TCP.Port))
-	if err != nil {
-		return fmt.Errorf("failed to start TCP server: %w", err)
+	// Check if any TCP service is enabled
+	if !s.config.TCP.Enabled && !s.config.TCP.TLS.Enabled {
+		return fmt.Errorf("❌ Both TCP and TLS are disabled. Enable at least one with TCP_ENABLED=true or TCP_TLS_ENABLED=true")
 	}
-	s.listener = listener
 
-	log.Printf("TCP Server listening on port %s", s.config.TCP.Port)
+	var listener net.Listener
+	var err error
+	
+	address := fmt.Sprintf(":%s", s.config.TCP.Port)
+	
+	// Determine which mode to use based on configuration
+	if s.config.TCP.TLS.Enabled && s.config.TCP.Enabled {
+		// Both enabled - prioritize TLS for security
+		log.Printf("⚠️  Both TCP and TLS are enabled. Using TLS for security (TCP_ENABLED will be ignored)")
+		log.Printf("💡 Set TCP_ENABLED=false to disable insecure TCP completely")
+	}
+	
+	if s.config.TCP.TLS.Enabled {
+		// Load TLS certificates
+		cert, err := tls.LoadX509KeyPair(s.config.TCP.TLS.CertPath, s.config.TCP.TLS.KeyPath)
+		if err != nil {
+			return fmt.Errorf("failed to load TLS certificates: %w", err)
+		}
+
+		tlsConfig := &tls.Config{
+			Certificates: []tls.Certificate{cert},
+			ServerName:   "localhost", // For development
+		}
+
+		listener, err = tls.Listen("tcp", address, tlsConfig)
+		if err != nil {
+			return fmt.Errorf("failed to start TLS server: %w", err)
+		}
+		
+		log.Printf("🔒 TLS Server listening on port %s (SECURE)", s.config.TCP.Port)
+		log.Printf("📜 Using certificate: %s", s.config.TCP.TLS.CertPath)
+		log.Printf("🛡️  All connections will be encrypted")
+	} else if s.config.TCP.Enabled {
+		listener, err = net.Listen("tcp", address)
+		if err != nil {
+			return fmt.Errorf("failed to start TCP server: %w", err)
+		}
+		
+		log.Printf("⚠️  TCP Server listening on port %s (INSECURE)", s.config.TCP.Port)
+		log.Printf("💡 Consider enabling TLS with TCP_TLS_ENABLED=true")
+		log.Printf("🔒 For production, set TCP_ENABLED=false and TCP_TLS_ENABLED=true")
+	}
+	
+	s.listener = listener
 
 	for {
 		conn, err := listener.Accept()
@@ -42,6 +85,19 @@ func (s *Server) Start() error {
 			log.Printf("Error accepting connection: %v", err)
 			metrics.TCPErrors.Inc()
 			continue
+		}
+
+		// Log connection type
+		if s.config.TCP.TLS.Enabled {
+			if tlsConn, ok := conn.(*tls.Conn); ok {
+				log.Printf("🔒 New TLS connection from %s", conn.RemoteAddr())
+				// Log TLS details
+				state := tlsConn.ConnectionState()
+				log.Printf("   Cipher Suite: %s", tls.CipherSuiteName(state.CipherSuite))
+				log.Printf("   TLS Version: %x", state.Version)
+			}
+		} else {
+			log.Printf("⚠️  New insecure TCP connection from %s", conn.RemoteAddr())
 		}
 
 		go s.handleConnection(conn)
